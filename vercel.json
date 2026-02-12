@@ -23,6 +23,12 @@
       "dest": "/static/images/favicon.ico"
     },
     {
+      "src": "/_vercel/insights/(.*)",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
       "src": "/(.*)",
       "dest": "wsgi.py",
       "headers": {
