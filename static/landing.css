@@ -396,11 +396,6 @@ h1, h2, h3 {
     opacity: 0;
     transform: translateY(120px) rotateX(-30deg);
     animation: revealWord 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    margin-right: 0.2em;
-}
-
-.hero-title .word:last-child {
-    margin-right: 0;
 }
 
 .hero-title .reveal-text:nth-child(1) .word {
