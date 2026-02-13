@@ -26,11 +26,42 @@
     box-sizing: border-box;
 }
 
+/* ===== OVERRIDE BASE.HTML FONTS - CRITICAL ===== */
+html,
+html body,
+body,
+body *,
+* {
+    font-family: 'DM Sans', sans-serif !important;
+}
+
 body {
     background: var(--about-bg);
     color: var(--about-text);
     font-family: 'DM Sans', sans-serif !important;
     cursor: none !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* ===== FORCE SYNE FONT ON ALL HEADINGS - MUST COME AFTER BODY RESET ===== */
+h1, h1 *,
+h2, h2 *,
+h3, h3 *,
+h4, h4 *,
+h5, h5 *,
+h6, h6 *,
+.hero-title, .hero-title *,
+.section-title, .section-title *,
+.phase-card h3, .phase-card h3 *,
+.glass-panel h3, .glass-panel h3 *,
+.essential-card h3, .essential-card h3 *,
+.cta-panel h2, .cta-panel h2 * {
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 800 !important;
+    font-stretch: normal !important;
+    transform: none !important;
 }
 
 .about-page,
@@ -49,24 +80,11 @@ body {
     font-family: 'DM Sans', sans-serif !important;
 }
 
-.glass-nav .logo {
+.glass-nav .logo,
+.logo {
     font-family: 'Syne', sans-serif !important;
     font-weight: 800 !important;
     letter-spacing: -1px;
-}
-
-/* ===== FORCE SYNE FONT ON ALL HEADINGS ===== */
-h1, h2, h3, h4, h5, h6,
-.hero-title,
-.section-title,
-.phase-card h3,
-.glass-panel h3,
-.essential-card h3,
-.cta-panel h2 {
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 800 !important;
-    font-stretch: normal !important;
-    transform: none !important;
 }
 
 body * {

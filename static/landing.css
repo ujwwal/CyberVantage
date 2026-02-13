@@ -26,6 +26,9 @@ body {
     min-height: 100vh;
     position: relative;
     cursor: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 /* ===== CUSTOM CURSOR ===== */
@@ -393,6 +396,7 @@ h1, h2, h3 {
     opacity: 0;
     transform: translateY(120px) rotateX(-30deg);
     animation: revealWord 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    margin-right: 0.25em;
 }
 
 .hero-title .reveal-text:nth-child(1) .word {
