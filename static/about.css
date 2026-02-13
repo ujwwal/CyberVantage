@@ -33,18 +33,26 @@ body {
     cursor: none !important;
 }
 
-.glass-nav .logo {
-    font-family: 'Syne', sans-serif !important;
-    font-weight: 800 !important;
-    letter-spacing: -1px;
-}
-
+.about-page,
+.about-page p,
+.about-page a,
+.about-page span,
+.about-page li,
+.about-page button,
+.about-page input,
+.about-page textarea,
 .glass-nav .nav-links a,
 .nav-dropdown-menu a,
 .btn-primary,
 .btn-glass,
 .btn-outline {
     font-family: 'DM Sans', sans-serif !important;
+}
+
+.glass-nav .logo {
+    font-family: 'Syne', sans-serif !important;
+    font-weight: 800 !important;
+    letter-spacing: -1px;
 }
 
 /* ===== FORCE SYNE FONT ON ALL HEADINGS ===== */
@@ -194,8 +202,8 @@ body * {
 .section-title {
     font-family: 'Syne', sans-serif !important;
     font-weight: 800 !important;
-    line-height: 1 !important;
-    letter-spacing: -2px !important;
+    line-height: 0.95 !important;
+    letter-spacing: -3px !important;
     font-stretch: normal !important;
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-glow) 50%, var(--accent-tertiary) 100%);
     -webkit-background-clip: text;
@@ -210,9 +218,10 @@ body * {
 
 .hero-subtitle {
     max-width: 620px;
-    line-height: 1.7;
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.8;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
     margin-bottom: 2.2rem;
 }
 
