@@ -26,6 +26,9 @@ body {
     min-height: 100vh;
     position: relative;
     cursor: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 /* ===== CUSTOM CURSOR ===== */

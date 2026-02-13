@@ -26,19 +26,59 @@
     box-sizing: border-box;
 }
 
+/* ===== OVERRIDE BASE.HTML FONTS - CRITICAL ===== */
+/* Target main content areas and navigation specifically */
+html,
+html body,
+body,
+.about-page,
+.about-page *,
+main,
+main *,
+nav,
+nav *,
+footer,
+footer * {
+    font-family: 'DM Sans', sans-serif !important;
+}
+
 body {
     background: var(--about-bg);
     color: var(--about-text);
     font-family: 'DM Sans', sans-serif !important;
     cursor: none !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
-.glass-nav .logo {
+/* ===== FORCE SYNE FONT ON ALL HEADINGS - MUST COME AFTER BODY RESET ===== */
+h1, h1 *,
+h2, h2 *,
+h3, h3 *,
+h4, h4 *,
+h5, h5 *,
+h6, h6 *,
+.hero-title, .hero-title *,
+.section-title, .section-title *,
+.phase-card h3, .phase-card h3 *,
+.glass-panel h3, .glass-panel h3 *,
+.essential-card h3, .essential-card h3 *,
+.cta-panel h2, .cta-panel h2 * {
     font-family: 'Syne', sans-serif !important;
     font-weight: 800 !important;
-    letter-spacing: -1px;
+    font-stretch: normal !important;
+    transform: none !important;
 }
 
+.about-page,
+.about-page p,
+.about-page a,
+.about-page span,
+.about-page li,
+.about-page button,
+.about-page input,
+.about-page textarea,
 .glass-nav .nav-links a,
 .nav-dropdown-menu a,
 .btn-primary,
@@ -47,18 +87,11 @@ body {
     font-family: 'DM Sans', sans-serif !important;
 }
 
-/* ===== FORCE SYNE FONT ON ALL HEADINGS ===== */
-h1, h2, h3, h4, h5, h6,
-.hero-title,
-.section-title,
-.phase-card h3,
-.glass-panel h3,
-.essential-card h3,
-.cta-panel h2 {
+.glass-nav .logo,
+.logo {
     font-family: 'Syne', sans-serif !important;
     font-weight: 800 !important;
-    font-stretch: normal !important;
-    transform: none !important;
+    letter-spacing: -1px;
 }
 
 body * {
@@ -194,8 +227,8 @@ body * {
 .section-title {
     font-family: 'Syne', sans-serif !important;
     font-weight: 800 !important;
-    line-height: 1 !important;
-    letter-spacing: -2px !important;
+    line-height: 0.95 !important;
+    letter-spacing: -3px !important;
     font-stretch: normal !important;
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-glow) 50%, var(--accent-tertiary) 100%);
     -webkit-background-clip: text;
@@ -210,9 +243,10 @@ body * {
 
 .hero-subtitle {
     max-width: 620px;
-    line-height: 1.7;
-    font-size: 1.05rem;
-    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.8;
+    font-size: 1.3rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.85);
     margin-bottom: 2.2rem;
 }
 
