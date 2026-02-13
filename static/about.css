@@ -27,11 +27,18 @@
 }
 
 /* ===== OVERRIDE BASE.HTML FONTS - CRITICAL ===== */
+/* Target main content areas and navigation specifically */
 html,
 html body,
 body,
-body *,
-* {
+.about-page,
+.about-page *,
+main,
+main *,
+nav,
+nav *,
+footer,
+footer * {
     font-family: 'DM Sans', sans-serif !important;
 }
 
