@@ -20,6 +20,15 @@ RATE_LIMIT_WINDOW = 300  # 5 minutes in seconds
 MAX_LOGIN_ATTEMPTS = 5
 MAX_REGISTRATION_ATTEMPTS = 3
 
+def _prefers_json_response() -> bool:
+    """Return True when request is coming from an API client rather than a browser form."""
+    if request.is_json:
+        return True
+    best = request.accept_mimetypes.best
+    if best == "application/json":
+        return request.accept_mimetypes[best] >= request.accept_mimetypes["text/html"]
+    return False
+
 def is_rate_limited(ip_address, attempts_dict, max_attempts):
     """Check if IP is rate limited"""
     now = time.time()
@@ -70,11 +79,16 @@ def token_required(f):
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        wants_json = _prefers_json_response()
         ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
         
         # Check rate limiting
         if is_rate_limited(ip_address, registration_attempts, MAX_REGISTRATION_ATTEMPTS):
-            return jsonify({"error": "Too many registration attempts. Please try again in 5 minutes."}), 429
+            if wants_json:
+                return jsonify({"error": "Too many registration attempts. Please try again in 5 minutes."}), 429
+            from flask import flash
+            flash("Too many registration attempts. Please try again in 5 minutes.", "error")
+            return render_template("register.html"), 429
         
         record_attempt(ip_address, registration_attempts)
         
@@ -85,35 +99,67 @@ def register():
 
         # Input validation
         if not name or not email or not password:
-            return jsonify({"error": "All fields are required"}), 400
+            if wants_json:
+                return jsonify({"error": "All fields are required"}), 400
+            from flask import flash
+            flash("All fields are required.", "error")
+            return render_template("register.html"), 400
 
         # Email validation
         try:
             validate_email(email)
         except EmailNotValidError as e:
-            return jsonify({"error": str(e)}), 400
+            if wants_json:
+                return jsonify({"error": str(e)}), 400
+            from flask import flash
+            flash(str(e), "error")
+            return render_template("register.html"), 400
 
         # Password match check
         if password != confirm_password:
-            return jsonify({"error": "Passwords do not match"}), 400
+            if wants_json:
+                return jsonify({"error": "Passwords do not match"}), 400
+            from flask import flash
+            flash("Passwords do not match.", "error")
+            return render_template("register.html"), 400
 
         # Enhanced password strength check
         if len(password) < 8:
-            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must be at least 8 characters long"}), 400
+            from flask import flash
+            flash("Password must be at least 8 characters long.", "error")
+            return render_template("register.html"), 400
         
         # Check for complexity
         if not any(c.isupper() for c in password):
-            return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
+            from flask import flash
+            flash("Password must contain at least one uppercase letter.", "error")
+            return render_template("register.html"), 400
         
         if not any(c.islower() for c in password):
-            return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
+            from flask import flash
+            flash("Password must contain at least one lowercase letter.", "error")
+            return render_template("register.html"), 400
         
         if not any(c.isdigit() for c in password):
-            return jsonify({"error": "Password must contain at least one number"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one number"}), 400
+            from flask import flash
+            flash("Password must contain at least one number.", "error")
+            return render_template("register.html"), 400
 
         # Check if email exists
         if User.query.filter_by(email=email).first():
-            return jsonify({"error": "Email already registered"}), 400
+            if wants_json:
+                return jsonify({"error": "Email already registered"}), 400
+            from flask import flash
+            flash("Email already registered.", "error")
+            return render_template("register.html"), 400
 
         # Create user with properly hashed password
         new_user = User(name=name, email=email)
@@ -136,11 +182,16 @@ def register():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        wants_json = _prefers_json_response()
         ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.remote_addr)
         
         # Check rate limiting
         if is_rate_limited(ip_address, login_attempts, MAX_LOGIN_ATTEMPTS):
-            return jsonify({"error": "Too many login attempts. Please try again in 5 minutes."}), 429
+            if wants_json:
+                return jsonify({"error": "Too many login attempts. Please try again in 5 minutes."}), 429
+            from flask import flash
+            flash("Too many login attempts. Please try again in 5 minutes.")
+            return render_template("login.html"), 429
         
         email = request.form.get("email", "").strip().lower()  # Normalize email to lowercase
         password = request.form.get("password", "").strip()  # Strip whitespace from password
@@ -148,13 +199,21 @@ def login():
         # Input validation
         if not email or not password:
             record_attempt(ip_address, login_attempts)
-            return jsonify({"error": "Email and password are required"}), 400
+            if wants_json:
+                return jsonify({"error": "Email and password are required"}), 400
+            from flask import flash
+            flash("Email and password are required.")
+            return render_template("login.html"), 400
 
         user = User.query.filter_by(email=email).first()
 
         if not user or not user.check_password(password):
             record_attempt(ip_address, login_attempts)
-            return jsonify({"error": "Invalid credentials"}), 401
+            if wants_json:
+                return jsonify({"error": "Invalid credentials"}), 401
+            from flask import flash
+            flash("Invalid credentials.")
+            return render_template("login.html"), 401
 
         # Generate JWT with shorter expiration for security
         from flask import current_app
@@ -283,10 +342,15 @@ def make_admin(current_user, user_id):
 def reset_password_request():
     """Request password reset"""
     if request.method == 'POST':
+        wants_json = _prefers_json_response()
         email = request.form.get('email', '').strip().lower()  # Normalize email to lowercase
         
         if not email:
-            return jsonify({"error": "Email is required"}), 400
+            if wants_json:
+                return jsonify({"error": "Email is required"}), 400
+            from flask import flash
+            flash("Email is required.", "error")
+            return render_template('reset_password_request.html'), 400
             
         user = User.query.filter_by(email=email).first()
         if user:
@@ -334,28 +398,53 @@ def reset_password(token):
         return redirect(url_for('auth.login'))
     
     if request.method == 'POST':
+        wants_json = _prefers_json_response()
         password = request.form.get('password', '').strip()  # Strip whitespace from password
         confirm_password = request.form.get('confirm_password', '').strip()  # Strip whitespace from password
         
         # Password validation (same as registration)
         if not password:
-            return jsonify({"error": "Password is required"}), 400
+            if wants_json:
+                return jsonify({"error": "Password is required"}), 400
+            from flask import flash
+            flash("Password is required.", "error")
+            return render_template('reset_password.html', token=token), 400
             
         if password != confirm_password:
-            return jsonify({"error": "Passwords do not match"}), 400
+            if wants_json:
+                return jsonify({"error": "Passwords do not match"}), 400
+            from flask import flash
+            flash("Passwords do not match.", "error")
+            return render_template('reset_password.html', token=token), 400
             
         # Enhanced password strength check
         if len(password) < 8:
-            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must be at least 8 characters long"}), 400
+            from flask import flash
+            flash("Password must be at least 8 characters long.", "error")
+            return render_template('reset_password.html', token=token), 400
         
         if not any(c.isupper() for c in password):
-            return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
+            from flask import flash
+            flash("Password must contain at least one uppercase letter.", "error")
+            return render_template('reset_password.html', token=token), 400
         
         if not any(c.islower() for c in password):
-            return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
+            from flask import flash
+            flash("Password must contain at least one lowercase letter.", "error")
+            return render_template('reset_password.html', token=token), 400
         
         if not any(c.isdigit() for c in password):
-            return jsonify({"error": "Password must contain at least one number"}), 400
+            if wants_json:
+                return jsonify({"error": "Password must contain at least one number"}), 400
+            from flask import flash
+            flash("Password must contain at least one number.", "error")
+            return render_template('reset_password.html', token=token), 400
         
         # Update password and clear reset token
         user.set_password(password)
@@ -404,13 +493,13 @@ def request_password_reset_otp():
                 return jsonify({
                     "success": False,
                     "error": "Failed to send OTP. Please try again later."
-                }), 500
+                }), 400
         except Exception as e:
             print(f"Error sending OTP: {str(e)}")
             return jsonify({
                 "success": False,
                 "error": "Failed to send OTP. Please try again later."
-            }), 500
+            }), 400
     else:
         # Don't reveal that email doesn't exist (security best practice)
         # Return success anyway
