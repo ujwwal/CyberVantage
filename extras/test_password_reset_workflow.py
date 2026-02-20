@@ -63,6 +63,11 @@ class PasswordResetWorkflowTests(unittest.TestCase):
         self.assertEqual(send_password_reset_email.call_args.args[0], "resettest@gmail.com")
         self.assertEqual(send_password_reset_email.call_args.args[1], token)
 
+        # Legacy link format should redirect properly
+        resp = self.client.get(f"/reset-password?token={token}", follow_redirects=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(f"/reset_password/{token}".encode(), resp.headers["Location"].encode())
+
         # 2) Open reset form
         resp = self.client.get(f"/reset_password/{token}")
         self.assertEqual(resp.status_code, 200)

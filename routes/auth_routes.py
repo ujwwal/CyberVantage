@@ -4,7 +4,7 @@ Authentication routes - login, register, logout
 import datetime
 import jwt
 import time
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, session, flash
 from email_validator import validate_email, EmailNotValidError
 from functools import wraps
 from models.database import User, db
@@ -86,7 +86,6 @@ def register():
         if is_rate_limited(ip_address, registration_attempts, MAX_REGISTRATION_ATTEMPTS):
             if wants_json:
                 return jsonify({"error": "Too many registration attempts. Please try again in 5 minutes."}), 429
-            from flask import flash
             flash("Too many registration attempts. Please try again in 5 minutes.", "error")
             return render_template("register.html"), 429
         
@@ -101,7 +100,6 @@ def register():
         if not name or not email or not password:
             if wants_json:
                 return jsonify({"error": "All fields are required"}), 400
-            from flask import flash
             flash("All fields are required.", "error")
             return render_template("register.html"), 400
 
@@ -111,7 +109,6 @@ def register():
         except EmailNotValidError as e:
             if wants_json:
                 return jsonify({"error": str(e)}), 400
-            from flask import flash
             flash(str(e), "error")
             return render_template("register.html"), 400
 
@@ -119,7 +116,6 @@ def register():
         if password != confirm_password:
             if wants_json:
                 return jsonify({"error": "Passwords do not match"}), 400
-            from flask import flash
             flash("Passwords do not match.", "error")
             return render_template("register.html"), 400
 
@@ -127,7 +123,6 @@ def register():
         if len(password) < 8:
             if wants_json:
                 return jsonify({"error": "Password must be at least 8 characters long"}), 400
-            from flask import flash
             flash("Password must be at least 8 characters long.", "error")
             return render_template("register.html"), 400
         
@@ -135,21 +130,18 @@ def register():
         if not any(c.isupper() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
-            from flask import flash
             flash("Password must contain at least one uppercase letter.", "error")
             return render_template("register.html"), 400
         
         if not any(c.islower() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
-            from flask import flash
             flash("Password must contain at least one lowercase letter.", "error")
             return render_template("register.html"), 400
         
         if not any(c.isdigit() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one number"}), 400
-            from flask import flash
             flash("Password must contain at least one number.", "error")
             return render_template("register.html"), 400
 
@@ -157,7 +149,6 @@ def register():
         if User.query.filter_by(email=email).first():
             if wants_json:
                 return jsonify({"error": "Email already registered"}), 400
-            from flask import flash
             flash("Email already registered.", "error")
             return render_template("register.html"), 400
 
@@ -189,8 +180,7 @@ def login():
         if is_rate_limited(ip_address, login_attempts, MAX_LOGIN_ATTEMPTS):
             if wants_json:
                 return jsonify({"error": "Too many login attempts. Please try again in 5 minutes."}), 429
-            from flask import flash
-            flash("Too many login attempts. Please try again in 5 minutes.")
+            flash("Too many login attempts. Please try again in 5 minutes.", "error")
             return render_template("login.html"), 429
         
         email = request.form.get("email", "").strip().lower()  # Normalize email to lowercase
@@ -201,8 +191,7 @@ def login():
             record_attempt(ip_address, login_attempts)
             if wants_json:
                 return jsonify({"error": "Email and password are required"}), 400
-            from flask import flash
-            flash("Email and password are required.")
+            flash("Email and password are required.", "error")
             return render_template("login.html"), 400
 
         user = User.query.filter_by(email=email).first()
@@ -211,8 +200,7 @@ def login():
             record_attempt(ip_address, login_attempts)
             if wants_json:
                 return jsonify({"error": "Invalid credentials"}), 401
-            from flask import flash
-            flash("Invalid credentials.")
+            flash("Invalid credentials.", "error")
             return render_template("login.html"), 401
 
         # Generate JWT with shorter expiration for security
@@ -247,7 +235,6 @@ def logout():
     session.pop('active_phase2_email_id', None)
     
     # Check if timeout parameter is present
-    from flask import flash
     timeout = request.args.get('timeout', False)
     if timeout:
         flash("Your session has expired due to inactivity. Please login again.")
@@ -280,7 +267,6 @@ def admin_required(f):
         # This should be called after token_required
         current_user = args[0] if args else None
         if not current_user or not current_user.is_admin_user():
-            from flask import flash
             flash("Admin access required.", "error")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
@@ -309,7 +295,6 @@ def profile(current_user):
         current_user.industry = request.form.get('industry', '').strip()
         current_user.demographics_completed = True
         db.session.commit()
-        from flask import flash
         flash("Profile updated successfully.", "success")
         return redirect(url_for('auth.profile'))
     return render_template('profile.html', username=current_user.name, user=current_user)
@@ -334,9 +319,17 @@ def make_admin(current_user, user_id):
     user.is_admin = True
     db.session.commit()
     
-    from flask import flash
     flash(f"Successfully made {user.name} an admin.", "success")
     return redirect(url_for('auth.admin_users'))
+
+@auth_bp.route('/reset-password', methods=['GET'])
+def reset_password_legacy_link():
+    """Backward-compatible password reset link handler (?token=...)."""
+    token = request.args.get('token', '').strip()
+    if not token:
+        flash("Invalid password reset link.", "error")
+        return redirect(url_for('auth.login'))
+    return redirect(url_for('auth.reset_password', token=token))
 
 @auth_bp.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
@@ -348,7 +341,6 @@ def reset_password_request():
         if not email:
             if wants_json:
                 return jsonify({"error": "Email is required"}), 400
-            from flask import flash
             flash("Email is required.", "error")
             return render_template('reset_password_request.html'), 400
             
@@ -361,14 +353,12 @@ def reset_password_request():
             try:
                 email_result = send_password_reset_email(email, token, user.name)
                 if email_result['success']:
-                    from flask import flash
                     flash(f"Password reset instructions have been sent to {email}.", "info")
                 else:
                     # Fallback to console logging if email fails
                     reset_url = url_for('auth.reset_password', token=token, _external=True)
                     print(f"Password reset requested for {email}")
                     print(f"Reset URL: {reset_url}")
-                    from flask import flash
                     flash(f"Password reset link generated. Check console: {reset_url}", "info")
             except Exception as e:
                 # Fallback to console logging if email service fails
@@ -376,11 +366,9 @@ def reset_password_request():
                 print(f"Email service error: {str(e)}")
                 print(f"Password reset requested for {email}")
                 print(f"Reset URL: {reset_url}")
-                from flask import flash
                 flash(f"Password reset link generated. Check console for the link.", "info")
         else:
             # Don't reveal that email doesn't exist for security
-            from flask import flash
             flash(f"If an account with {email} exists, password reset instructions have been sent.", "info")
             
         return redirect(url_for('auth.login'))
@@ -393,7 +381,6 @@ def reset_password(token):
     user = User.query.filter_by(password_reset_token=token).first()
     
     if not user or not user.verify_reset_token(token):
-        from flask import flash
         flash("Invalid or expired password reset token.", "error")
         return redirect(url_for('auth.login'))
     
@@ -406,14 +393,12 @@ def reset_password(token):
         if not password:
             if wants_json:
                 return jsonify({"error": "Password is required"}), 400
-            from flask import flash
             flash("Password is required.", "error")
             return render_template('reset_password.html', token=token), 400
             
         if password != confirm_password:
             if wants_json:
                 return jsonify({"error": "Passwords do not match"}), 400
-            from flask import flash
             flash("Passwords do not match.", "error")
             return render_template('reset_password.html', token=token), 400
             
@@ -421,28 +406,24 @@ def reset_password(token):
         if len(password) < 8:
             if wants_json:
                 return jsonify({"error": "Password must be at least 8 characters long"}), 400
-            from flask import flash
             flash("Password must be at least 8 characters long.", "error")
             return render_template('reset_password.html', token=token), 400
         
         if not any(c.isupper() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one uppercase letter"}), 400
-            from flask import flash
             flash("Password must contain at least one uppercase letter.", "error")
             return render_template('reset_password.html', token=token), 400
         
         if not any(c.islower() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one lowercase letter"}), 400
-            from flask import flash
             flash("Password must contain at least one lowercase letter.", "error")
             return render_template('reset_password.html', token=token), 400
         
         if not any(c.isdigit() for c in password):
             if wants_json:
                 return jsonify({"error": "Password must contain at least one number"}), 400
-            from flask import flash
             flash("Password must contain at least one number.", "error")
             return render_template('reset_password.html', token=token), 400
         
@@ -451,7 +432,6 @@ def reset_password(token):
         user.clear_reset_token()
         db.session.commit()
         
-        from flask import flash
         flash("Your password has been reset successfully. Please log in.", "success")
         return redirect(url_for('auth.login'))
     
@@ -493,13 +473,13 @@ def request_password_reset_otp():
                 return jsonify({
                     "success": False,
                     "error": "Failed to send OTP. Please try again later."
-                }), 400
+                }), 202
         except Exception as e:
             print(f"Error sending OTP: {str(e)}")
             return jsonify({
                 "success": False,
                 "error": "Failed to send OTP. Please try again later."
-            }), 400
+            }), 202
     else:
         # Don't reveal that email doesn't exist (security best practice)
         # Return success anyway
@@ -618,33 +598,27 @@ def admin_reset_password(current_user, user_id):
     
     # Validation
     if not new_password or not confirm_password:
-        from flask import flash
         flash("Both password fields are required.", "error")
         return redirect(url_for('auth.admin_users'))
     
     if new_password != confirm_password:
-        from flask import flash
         flash("Passwords do not match.", "error")
         return redirect(url_for('auth.admin_users'))
     
     # Enhanced password strength check
     if len(new_password) < 8:
-        from flask import flash
         flash("Password must be at least 8 characters long.", "error")
         return redirect(url_for('auth.admin_users'))
     
     if not any(c.isupper() for c in new_password):
-        from flask import flash
         flash("Password must contain at least one uppercase letter.", "error")
         return redirect(url_for('auth.admin_users'))
     
     if not any(c.islower() for c in new_password):
-        from flask import flash
         flash("Password must contain at least one lowercase letter.", "error")
         return redirect(url_for('auth.admin_users'))
     
     if not any(c.isdigit() for c in new_password):
-        from flask import flash
         flash("Password must contain at least one number.", "error")
         return redirect(url_for('auth.admin_users'))
     
@@ -652,7 +626,6 @@ def admin_reset_password(current_user, user_id):
     user.set_password(new_password)
     db.session.commit()
     
-    from flask import flash
     flash(f"Password successfully reset for {user.name}.", "success")
     return redirect(url_for('auth.admin_users'))
 
@@ -665,7 +638,6 @@ def delete_user(current_user, user_id):
     
     # Prevent admin from deleting themselves
     if user.id == current_user.id:
-        from flask import flash
         flash("You cannot delete your own account.", "error")
         return redirect(url_for('auth.admin_users'))
     
@@ -681,6 +653,5 @@ def delete_user(current_user, user_id):
     db.session.delete(user)
     db.session.commit()
     
-    from flask import flash
     flash(f"User {user_name} has been successfully deleted.", "success")
     return redirect(url_for('auth.admin_users'))
