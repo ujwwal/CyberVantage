@@ -67,7 +67,8 @@ def send_password_reset_email(to_email: str, reset_token: str, username: str) ->
     Returns:
         dict: Response from send_email function
     """
-    reset_url = f"{os.getenv('APP_URL', 'http://localhost:5000')}/reset-password?token={reset_token}"
+    app_url = os.getenv('APP_URL', 'http://localhost:5000').rstrip('/')
+    reset_url = f"{app_url}/reset_password/{reset_token}"
     
     html_content = f"""
     <!DOCTYPE html>
